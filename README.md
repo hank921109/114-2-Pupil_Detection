@@ -47,16 +47,16 @@ python Pupil_Detection/pupil_detection.py --image Pupil_Detection/test_image/ima
 
 ```mermaid
 flowchart TD
-  A[讀入影像] --> B[臉部偵測 (Haar Cascade)]
-  B --> C[估算左右眼 ROI (face bbox 比例)]
-  C --> D[眼區前處理 (CLAHE -> MedianBlur)]
-  D --> E[局部二值化 (以最暗值閾值)]
-  E --> F[形態學處理 (開/閉運算)]
-  F --> G[輪廓分析 (面積 + 圓形度)]
-  G --> H{找到候選?}
-  H -- 是 --> I[計算質心並回傳瞳孔中心]
-  H -- 否 --> J[備援: 反相 + Otsu 質心]
-  I --> K[若有兩眼則計算距離並標註]
+  A["讀入影像"] --> B["臉部偵測 (Haar Cascade)"]
+  B --> C["估算左右眼 ROI (face bbox 比例)"]
+  C --> D["眼區前處理 (CLAHE -> MedianBlur)"]
+  D --> E["局部二值化 (以最暗值閾值)"]
+  E --> F["形態學處理 (開/閉運算)"]
+  F --> G["輪廓分析 (面積 + 圓形度)"]
+  G --> H{"找到候選?"}
+  H -- 是 --> I["計算質心並回傳瞳孔中心"]
+  H -- 否 --> J["備援: 反相 + Otsu 質心"]
+  I --> K["若有兩眼則計算距離並標註"]
   J --> K
 ```
 
@@ -133,7 +133,11 @@ done
 
 ```bash
 conda run -n Pupil_Detection python Pupil_Detection/pupil_detection.py --image Pupil_Detection/test_image/image1.png --output Pupil_Detection/results/image1_annotated_debug.jpg
-```
+
+## 成果展示
+[成果1](https://github.com/hank921109/114-2-Pupil_Detection/blob/main/results/image1_annotated.jpg)
+[成果2](https://github.com/hank921109/114-2-Pupil_Detection/blob/main/results/image2_annotated.jpg)
+
 
 ## 參考與資源
 
