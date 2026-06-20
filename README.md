@@ -133,6 +133,8 @@ done
 
 ```bash
 conda run -n Pupil_Detection python Pupil_Detection/pupil_detection.py --image Pupil_Detection/test_image/image1.png --output Pupil_Detection/results/image1_annotated_debug.jpg
+```bash
+
 
 ## 成果展示
 [成果1](https://github.com/hank921109/114-2-Pupil_Detection/blob/main/results/image1_annotated.jpg)
