@@ -1,13 +1,4 @@
-# Pupil Detection 技術文件
-
-````
-- 輸出範例與解釋
-- 測試與評估
-- 限制與注意事項
-- 未來改進方向
-- 中間產物（Debug）
-- 在終端機中執行（使用 conda）
-- 參考與資源
+# Pupil Detection
 
 ## 專案概述
 
@@ -265,4 +256,3 @@ Results:
 - Hough Circle Transform: https://docs.opencv.org/4.x/da/d53/tutorial_py_houghcircles.html
 
 ---
-````
