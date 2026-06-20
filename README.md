@@ -1,4 +1,4 @@
-# Pupil Detection 瞳孔辨識
+# Pupil Detection
 
 ## 專案概述
 
@@ -6,84 +6,77 @@
 
 ## 快速開始
 
-\*\*\* Begin Clean README
-
-# Pupil Detection
-
-在單張靜態影像中偵測人臉的瞳孔中心，並計算左右瞳孔中心之間的像素距離。
-
-此 README 已清理重複內容，包含快速開始、檔案說明、技術清單、處理流程、使用範例、限制與成果連結。
-
----
-
-## 快速開始
-
-在專案根目錄下：
+1. 建議先建立 conda 環境（你可使用相同名稱 `Pupil_Detection`）：
 
 ```bash
-conda create -n Pupil_Detection python=3.10 -y
 conda activate Pupil_Detection
-pip install -r requirements.txt
 ```
-
-測試單張圖片：
 
 ```bash
-mkdir -p results
-python pupil_detection.py --image test_image/image1.png --output results/image1_annotated.jpg
+pip install -r Pupil_Detection/requirements.txt
 ```
-
-批次處理 `test_image`：
 
 ```bash
-mkdir -p results
-for f in test_image/*; do
-  python pupil_detection.py --image "$f" --output "results/$(basename "${f%.*}")_annotated.jpg"
-done
+python Pupil_Detection/pupil_detection.py --image Pupil_Detection/test_image/image1.png --output Pupil_Detection/results/image1_annotated_debug.jpg
 ```
 
----
+## 檔案結構
 
-## 檔案說明
+- `Pupil_Detection/README.md` : 專案簡要說明。
 
-- `pupil_detection.py` : 主程式，負責偵測、人臉與瞳孔標記、輸出註記影像。
-- `requirements.txt` : Python 相依。
-- `test_image/` : 範例輸入影像。
-- `results/` : 偵測輸出（註記影像）。
-- `TECHNICAL_DOCUMENTATION.md` : 詳細技術說明（包含流程圖與參數）。
+簡短說明：在單張靜態影像內偵測人臉的瞳孔中心並計算左右瞳孔中心之間的像素距離。此 README 已整理為適合公開上傳的格式，包含快速開始、使用範例、技術清單、處理流程與注意事項。
 
----
+- 臉部偵測：使用 OpenCV 的 Haar cascade (`haarcascade_frontalface_default.xml`) 偵測臉部 bounding box。
+- 鎖定眼區：以 face bbox 比例估算左右眼 ROI（避免直接使用 Haar eye 偵測誤判）。
+- 瞳孔定位：在每個眼部 ROI 進行 CLAHE 增強與中值濾波，接著以最暗值為基準做局部二值化與形態學處理，擷取可能的暗色輪廓，使用面積與圓形度選出最佳候選；若候選不足則以反相+Otsu 的質心作為備援。
+- 距離計算：若一張臉找到兩瞳孔中心，計算兩者之歐式距離並在影像上標註（像素）。
 
-## 技術清單（概要）
+### 技術清單
 
-- OpenCV（Haar cascade、影像處理、輪廓、繪製）
-- CLAHE（局部對比增強）
-- 中值濾波（去噪）
-- 閾值分割（min-value / Otsu）
-- 形態學操作（開/閉）
-- 輪廓分析（面積、圓形度）
-- 質心 (moments) 作為備援中心
+- **OpenCV (haarcascade, image ops)**: 臉部偵測、影像前處理、輪廓與繪製。
+- **CLAHE (局部對比增強)**: 提升眼區局部對比，對於低對比影像特別有用。
+- **Median blur**: 抑制椒鹽雜訊，保留邊緣資訊。
+- **Thresholding (min-value / Otsu)**: 分割瞳孔（暗區）與背景；min-value 作為主要策略，Otsu 作為備援。
+- **Morphological ops (open/close)**: 移除小雜訊與填補小孔洞，提高輪廓穩定性。
+- **Contour analysis (area + circularity)**: 以面積與圓形度評分候選瞳孔輪廓。
+- **Moments (質心)**: 當輪廓不足時，以質心作為瞳孔近似中心。
+- **歐式距離**: 計算左右瞳孔中心的像素距離。
 
----
+## 處理流程（流程圖與步驟）
 
-## 處理流程（概覽）
+```mermaid
+flowchart TD
+  A["讀入影像"] --> B["臉部偵測 (Haar Cascade)"]
+  B --> C["估算左右眼 ROI (face bbox 比例)"]
+  C --> D["眼區前處理 (CLAHE -> MedianBlur)"]
+  D --> E["局部二值化 (以最暗值閾值)"]
+  E --> F["形態學處理 (開/閉運算)"]
+  F --> G["輪廓分析 (面積 + 圓形度)"]
+  G --> H{"找到候選?"}
+  H -- 是 --> I["計算質心並回傳瞳孔中心"]
+  H -- 否 --> J["備援: 反相 + Otsu 質心"]
+  I --> K["若有兩眼則計算距離並標註"]
+  J --> K
+```
 
-1. 讀入影像 → 轉灰階
-2. 人臉偵測（Haar cascade）
-3. 根據臉框估算左右眼 ROI
-4. 眼區前處理：CLAHE → 中值濾波
-5. 局部二值化（以暗值為基準）→ 形態學處理
-6. 輪廓分析（面積 + 圓形度）選出瞳孔候選，取質心或 minEnclosingCircle
-7. 若獲得左右兩瞳孔中心，計算歐式距離並標註
+步驟簡述：
 
-詳細參數與說明見 `TECHNICAL_DOCUMENTATION.md`。
+1. 讀入影像並轉為灰階。
+2. 使用 Haar cascade 偵測臉部 bounding box。
+3. 根據臉框比例估算左右眼 ROI，限定搜尋區域以降低誤偵測。
+4. 在每個眼區進行 CLAHE 與中值濾波增強與去噪。
+5. 以最暗值為基準做局部二值化，接著用形態學處理清理雜訊。
+6. 使用輪廓分析（面積與圓形度）挑選最可能的瞳孔區，並取質心為中心點；若無候選則以反相+Otsu 質心作為備援。
+7. 若在同一臉上取得左右兩瞳孔中心，計算歐式距離並在影像上標註。
 
----
+## 輸出範例與解釋
 
-## 使用說明與輸出標示
-
-- 執行後終端會輸出每張臉的 `face_box`, `pupil_centers`, `distance_px`。
-- 註記圖示說明：綠圓=瞳孔外框，紅點=瞳孔中心，藍線=兩眼連線，橙框=未找到瞳孔的眼區。
+- 程式會回傳每個偵測到的臉的結果（`face_box`, `pupil_centers`, `distance_px`）。
+- 標記說明：
+  - 綠色圓：瞳孔外圍估計
+  - 紅色點：瞳孔中心
+  - 藍色線：兩瞳孔中心連線
+  - 橙色矩形：未找到瞳孔時顯示的眼區
 
 ---
 
@@ -104,15 +97,6 @@ done
   https://github.com/hank921109/114-2-Pupil_Detection/blob/main/results/image2_annotated.jpg
 
 ---
-
-## 限制與注意事項
-
-- Haar cascade 在側臉、遮擋或強反光（例如鏡片）情況下表現有限。
-- 輸出為像素距離；若需實際長度，請做相機校正或使用已知尺度換算。
-
----
-
-5. 若同一張臉在左右眼找到兩個瞳孔中心，計算歐式距離並將結果以文字標註於影像中點。
 
 ## 輸出範例與解釋
 
